@@ -1,33 +1,18 @@
-use rand::Rng;
+use std::env;
+use std::process;
+
+mod smartcropper;
 
 fn main() {
-    println!("Guess the number!");
+    let args: Vec<String> = env::args().collect();
+
+    let configuration = smartcropper::Configuration::new(&args);
+
+    println!("{}, {}", configuration.path, configuration.width / configuration.height);
     
-    let secret_number = rand::thread_rng().gen_range(0..101);
-    
-    loop {
-        println!("Please in put your guess:");
-    
-        let mut guess = String::new();
+    if let Err(error) = smartcropper::run(configuration) {
+        println!("Application error! {}", error);
         
-        std::io::stdin()
-            .read_line(&mut guess)
-            .expect("Failed to read line!");
-            
-        let guess: u32 = match guess.trim().parse() {
-            Ok(num) => num,
-            Err(_) => continue,
-        };
-            
-        println!("You guessed {}", guess);
-        
-        match guess.cmp(&secret_number) {
-            std::cmp::Ordering::Less => println!("Too small!"),
-            std::cmp::Ordering::Greater => println!("Too big!"),
-            std::cmp::Ordering::Equal => {
-                println!("You win!");
-                break;
-            }
-        }
+        process::exit(1);
     }
 }
