@@ -13,31 +13,57 @@ pub fn run(configuration: Configuration) -> Result<(), Box<dyn Error>> {
     let image = opencv::imgcodecs::imread(&configuration.path, opencv::imgcodecs::IMREAD_COLOR)?;
 
     // Use Orb
-    let mut orb = <dyn opencv::features2d::ORB>::create(
-        500,
-        1.2,
-        8,
-        31,
-        0,
-        2,
-        opencv::features2d::ORB_ScoreType::HARRIS_SCORE,
-        31,
-        20,
-    )?;
+    // let mut orb = <dyn opencv::features2d::ORB>::create (
+    //     100,
+    //     1.2,
+    //     8,
+    //     50,
+    //     0,
+    //     2,
+    //     opencv::features2d::ORB_ScoreType::HARRIS_SCORE,
+    //     50,
+    //     20,
+    // )?;
 
-    let mut orb_keypoints = opencv::core::Vector::default();
-    let mut orb_desc = opencv::core::Mat::default();
-    let dst_image = opencv::core::Mat::default();
+    //let mut orb_keypoints = opencv::core::Vector::default();
+    //let mut orb_desc = opencv::core::Mat::default();
+    let mut dst_image = opencv::core::Mat::default();
     let mask = opencv::core::Mat::default();
 
-    orb.detect_and_compute(&image, &mask, &mut orb_keypoints, &mut orb_desc, false)?;
+    // orb.detect_and_compute(&image, &mask, &mut orb_keypoints, &mut orb_desc, false)?;
+
+    // opencv::features2d::draw_keypoints(
+    //     &image,
+    //     &orb_keypoints,
+    //     &mut dst_image,
+    //     opencv::core::VecN([0., 255., 0., 255.]),
+    //     opencv::features2d::DrawMatchesFlags::DEFAULT,
+    // )?;
+
+    // opencv::imgproc::rectangle(
+    //     &mut dst_image,
+    //     opencv::core::Rect::from_points(opencv::core::Point::new(0, 0), opencv::core::Point::new(50, 50)),
+    //     opencv::core::VecN([255., 0., 0., 0.]),
+    //     -1,
+    //     opencv::imgproc::LINE_8,
+    //     0,
+    // )?;
 
     // Use SIFT
-    let mut sift = opencv::features2d::SIFT::create(0, 3, 0.04, 10., 1.6)?;
+    let mut sift = opencv::features2d::SIFT::create(0, 3, 0.06, 30., 1.6)?;
     let mut sift_keypoints = opencv::core::Vector::default();
     let mut sift_desc = opencv::core::Mat::default();
 
     sift.detect_and_compute(&image, &mask, &mut sift_keypoints, &mut sift_desc, false)?;
+
+    opencv::features2d::draw_keypoints (
+        //&dst_image.clone(),
+        &image,
+        &sift_keypoints,
+        &mut dst_image,
+        opencv::core::VecN([0., 0., 255., 255.]),
+        opencv::features2d::DrawMatchesFlags::DEFAULT,
+    )?;
 
     // Write image using OpenCV
     opencv::imgcodecs::imwrite("./tmp.png", &dst_image, &opencv::core::Vector::default())?;
