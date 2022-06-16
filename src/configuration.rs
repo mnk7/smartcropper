@@ -92,19 +92,13 @@ impl Configuration {
         }
 
         if self.output_path.is_some() {
-            let metadata_output = match fs::metadata(self.output_path.clone().unwrap_or("".to_string())) {
-                Ok(metadata) => metadata,
+            match fs::create_dir_all(self.output_path.clone().unwrap_or("".to_string())) {
+                Ok(_) => {},
                 Err(_e) => {
                     println!("{}, {}", _e, &self.output_path.clone().unwrap_or("".to_string()));
                     return false
                 },
             };
-
-            // if we scan a directory, the output path has to point to a directory too.
-            if metadata_output.is_file() {
-                println!("The output path hast to be a directory.");
-                return false;
-            }
         }
 
         return true;
