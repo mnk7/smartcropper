@@ -40,7 +40,7 @@ pub fn run(configuration: Configuration) -> Result<bool, String> {
             Ok(image) => image,
             Err(error) => {
                 let message = String::from("Failed to read image: ") + &String::from(error.to_string());
-                return Err(message)
+                continue
             }
         };
 
@@ -171,7 +171,7 @@ pub fn run(configuration: Configuration) -> Result<bool, String> {
             Err(error) => {
                 let message = String::from("Failed to save result to a file. Reason: ")
                     + &String::from(error.to_string());
-                return Err(message)
+                continue
             }
         }
 
