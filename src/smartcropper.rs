@@ -138,7 +138,7 @@ pub fn run(configuration: Configuration) -> Result<bool, String> {
             }
         }
 
-        println!("detected faces inside rect from ({}, {}) to ({}, {})",
+        println!("\tdetected faces inside rect from ({}, {}) to ({}, {})",
                  &containing_bounds.min_x, &containing_bounds.min_y,
                  &containing_bounds.max_x, &containing_bounds.max_y);
 
