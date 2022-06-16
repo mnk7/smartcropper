@@ -1,5 +1,5 @@
 /// The current configuration of the program, as constructed from all available command line arguments.
-pub struct configuration {
+pub struct Configuration {
     path: String,
     output_path: String,
     model_path: String,
@@ -8,9 +8,9 @@ pub struct configuration {
     valid: bool,
 }
 
-impl configuration {
+impl Configuration {
     // Parses the command line arguments into usable variables
-    pub fn new(args: &[String]) -> configuration {
+    pub fn new(args: &[String]) -> Configuration {
         // weather the configuration is valid
         let mut valid = true;
 
@@ -49,7 +49,7 @@ impl configuration {
             valid = false
         }
 
-        configuration {
+        Configuration {
             path,
             output_path,
             model_path,

@@ -2,14 +2,15 @@ use image::{DynamicImage, GenericImage, GenericImageView, GrayImage};
 use imageproc::rect::Rect;
 use std::cmp::min;
 use std::cmp::max;
+use std::result::Result;
 use num_traits::cast::NumCast;
 
 extern crate rustface;
 
 use rustface::{Detector, FaceInfo, ImageData};
-use crate::configuration::configuration;
+use crate::configuration::Configuration;
 
-pub fn run(configuration: configuration) -> Result<bool, String> {
+pub fn run(configuration: Configuration) -> Result<bool, String> {
     let image: DynamicImage = match image::open(configuration.path()) {
         Ok(image) => image,
         Err(error) => {
@@ -23,8 +24,8 @@ pub fn run(configuration: configuration) -> Result<bool, String> {
     let mut crop_width = false;
     let mut crop_height = false;
 
-    let mut new_width = image.width();
-    let mut new_height = image.height();
+    let mut new_width = image.width() as i32;
+    let mut new_height = image.height() as i32;
 
     let image_original_aspect_ratio: f32 = image.width() as f32 / image.height() as f32;
     let image_new_aspect_ratio: f32 = configuration.width().clone() as f32
@@ -42,7 +43,7 @@ pub fn run(configuration: configuration) -> Result<bool, String> {
                 println!("could not compute new height.");
                 image.width()
             },
-        };
+        } as i32;
         crop_width = true;
     } else {
         // the original height is higher than wanted
@@ -52,7 +53,7 @@ pub fn run(configuration: configuration) -> Result<bool, String> {
                 println!("could not compute new height");
                 image.height()
             },
-        };
+        } as i32;
         crop_height = true;
     }
 
@@ -78,37 +79,40 @@ pub fn run(configuration: configuration) -> Result<bool, String> {
 
     // Get the rectangle that contains all detected faces in the image:
     struct Bounds {
-        min_x: u32,
-        max_x: u32,
-        min_y: u32,
-        max_y: u32,
+        min_x: i32,
+        max_x: i32,
+        min_y: i32,
+        max_y: i32,
     }
     
     let mut containing_bounds = Bounds {
-        min_x: if crop_width { new_width.clone() / 2 } else { 0 },
-        max_x: if crop_width { new_width.clone() / 2 } else { new_width.clone() },
-        min_y: if crop_height { new_height.clone() / 2 } else { 0 },
-        max_y: if crop_height { new_height.clone() / 2 } else { new_height.clone() }
+        min_x: if crop_width { image.width() as i32 } else { 0 },
+        max_x: if crop_width { 0 } else { image.width() as i32 },
+        min_y: if crop_height { image.height() as i32 } else { 0 },
+        max_y: if crop_height { 0 } else { image.height() as i32 }
     };
 
     for face in faces {
         let bbox = face.bbox();
         let rect = Rect::at(bbox.x(), bbox.y()).of_size(bbox.width(), bbox.height());
-        
-        if rect.left() < containing_bounds.min_x.try_into().unwrap() {
-            containing_bounds.min_x = rect.left() as u32;
+
+        println!("detected face in rectangle of size ({}, {}) at: {}, {}",
+            &rect.width(), &rect.height(), &rect.left(), &rect.top());
+
+        if rect.left() < containing_bounds.min_x {
+            containing_bounds.min_x = rect.left().clone();
         }
         
-        if rect.right() > containing_bounds.max_x.try_into().unwrap() {
-            containing_bounds.max_x = rect.right() as u32;
+        if rect.right() > containing_bounds.max_x {
+            containing_bounds.max_x = rect.right().clone();
         }
 
-        if rect.top() < containing_bounds.min_y.try_into().unwrap() {
-            containing_bounds.min_y = rect.top() as u32;
+        if rect.top() < containing_bounds.min_y {
+            containing_bounds.min_y = rect.top().clone();
         }
 
-        if rect.bottom() > containing_bounds.max_y.try_into().unwrap() {
-            containing_bounds.max_y = rect.bottom() as u32;
+        if rect.bottom() > containing_bounds.max_y {
+            containing_bounds.max_y = rect.bottom().clone();
         }
     }
 
@@ -116,21 +120,23 @@ pub fn run(configuration: configuration) -> Result<bool, String> {
         &containing_bounds.min_x, &containing_bounds.min_y,
         &containing_bounds.max_x, &containing_bounds.max_y);
 
-    // maximize the area of the cropped image around the containing bounds
-    let mut x_of_crop_rectangle = (containing_bounds.min_x + containing_bounds.max_x) / 2;
+    // maximize the area of the cropped image around the feature-containing bounds
+    let mut x_of_crop_rectangle: i32 = (containing_bounds.min_x + containing_bounds.max_x
+        - new_width.clone()) / 2;
     // move the frame inside the original image
     x_of_crop_rectangle = max(x_of_crop_rectangle, 0);
-    x_of_crop_rectangle = min(x_of_crop_rectangle, image.width() - new_width.clone());
+    x_of_crop_rectangle = min(x_of_crop_rectangle, image.width() as i32 - new_width.clone());
 
-    let mut y_of_crop_rectangle = (containing_bounds.min_y + containing_bounds.max_y) / 2;
+    // assume that heads are mostly at the top of a body -> place them in the top of the picture
+    let mut y_of_crop_rectangle: i32 = containing_bounds.min_y - (new_height.clone() / 5);
     // move the frame inside the original image
     y_of_crop_rectangle = max(y_of_crop_rectangle, 0);
-    y_of_crop_rectangle = min(y_of_crop_rectangle, image.height() - new_height.clone());
+    y_of_crop_rectangle = min(y_of_crop_rectangle, image.height() as i32 - new_height.clone());
 
-    let crop_rectangle = Rect::at(x_of_crop_rectangle.try_into().unwrap(),
-                                      y_of_crop_rectangle.try_into().unwrap()).of_size(
-                                      new_width,
-                                      new_height);
+    let crop_rectangle = Rect::at(x_of_crop_rectangle, y_of_crop_rectangle)
+        .of_size(new_width as u32, new_height as u32);
+
+    println!("cutting rectangle at ({}, {})", &x_of_crop_rectangle, &y_of_crop_rectangle);
 
     rgb = rgb.sub_image(crop_rectangle.left() as u32,
                         crop_rectangle.top() as u32,

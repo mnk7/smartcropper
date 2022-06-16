@@ -7,7 +7,7 @@ mod configuration;
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let configuration = configuration::configuration::new(&args);
+    let configuration = configuration::Configuration::new(&args);
 
     if !configuration.valid() {
         println!("Failed to parse program arguments.");
